@@ -81,6 +81,7 @@ fn to_domain_sources(
             headers: s.headers,
             method: s.method,
             body: s.body,
+            body_type: s.body_type,
             open_path: s.open_path,
             high_path: s.high_path,
             low_path: s.low_path,
@@ -320,6 +321,7 @@ mod tests {
     use super::*;
     use crate::db::{create_pool, run_migrations, write_actor::spawn_writer};
     use tempfile::tempdir;
+    use wealthfolio_core::custom_provider::BodyType;
 
     fn create_test_repository() -> (CustomProviderSqliteRepository, tempfile::TempDir) {
         std::env::set_var("CONNECT_API_URL", "http://test.local");
@@ -453,5 +455,47 @@ mod tests {
 
         assert!(result.is_err());
         assert_eq!(stored_config(&repo, "broken").as_deref(), Some("not json"));
+    }
+
+    fn post_source(body_type: &str) -> NewCustomProviderSource {
+        serde_json::from_value(serde_json::json!({
+            "kind": "latest",
+            "format": "json",
+            "url": "https://api.test/quote",
+            "pricePath": "$.price",
+            "method": "POST",
+            "body": "symbol={SYMBOL}",
+            "bodyType": body_type,
+        }))
+        .expect("valid source")
+    }
+
+    #[tokio::test]
+    async fn form_body_type_survives_storage_and_json_stores_no_key() {
+        let (repo, _dir) = create_test_repository();
+        let mut form = new_provider("form-fund", None);
+        form.sources = vec![post_source("form")];
+        let mut json = new_provider("json-fund", None);
+        json.sources = vec![post_source("json")];
+
+        repo.create(&form).await.unwrap();
+        repo.create(&json).await.unwrap();
+
+        let all = repo.get_all().unwrap();
+        let body_type = |code: &str| {
+            all.iter()
+                .find(|provider| provider.name == code)
+                .expect("provider")
+                .sources[0]
+                .body_type
+        };
+        assert_eq!(body_type("form-fund"), BodyType::Form);
+        assert_eq!(body_type("json-fund"), BodyType::Json);
+        assert!(stored_config(&repo, "form-fund")
+            .unwrap()
+            .contains(r#""bodyType":"form""#));
+        assert!(!stored_config(&repo, "json-fund")
+            .unwrap()
+            .contains("bodyType"));
     }
 }

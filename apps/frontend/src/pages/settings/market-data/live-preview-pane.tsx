@@ -21,6 +21,7 @@ import type { FormValues, SourceKey } from "./custom-provider-form";
 import { RawResponseViewer } from "./response-preview";
 import {
   expandTemplatePlaceholders,
+  formEncode,
   resolveTemplatePlaceholder,
   type TemplatePlaceholderValues,
 } from "./template-placeholders";
@@ -88,11 +89,14 @@ function PreviewUrl({
   values,
   multiline,
   placeholder,
+  escape,
 }: {
   template: string;
   values: TemplatePlaceholderValues;
   multiline?: boolean;
   placeholder?: string;
+  /** Applied to each resolved value so the preview matches the request that is sent. */
+  escape?: (value: string) => string;
 }) {
   const { t } = useTranslation();
   const segments = useMemo(() => {
@@ -105,13 +109,14 @@ function PreviewUrl({
       if (m.index > last) out.push({ kind: "text", text: template.slice(last, m.index) });
       const key = m[1];
       const format = m[2];
-      const value = resolveTemplatePlaceholder(key, format, values);
+      const resolved = resolveTemplatePlaceholder(key, format, values);
+      const value = resolved !== undefined && escape ? escape(resolved) : resolved;
       out.push({ kind: "chip", text: format ? `${key}:${format}` : key, value });
       last = m.index + m[0].length;
     }
     if (last < template.length) out.push({ kind: "text", text: template.slice(last) });
     return out;
-  }, [template, values]);
+  }, [template, values, escape]);
 
   if (!template) {
     return (
@@ -692,7 +697,14 @@ export function LivePreviewPane({ form, prefix, runtime }: LivePreviewPaneProps)
 
   const method = form.watch(`${prefix}.method`) ?? "GET";
   const bodyTemplate = form.watch(`${prefix}.body`) ?? "";
-  const expandedBody = expandTemplatePlaceholders(bodyTemplate, previewValues);
+  const bodyType = form.watch(`${prefix}.bodyType`) ?? "json";
+  const bodyEscape = bodyType === "form" ? formEncode : undefined;
+  const expandedBody = expandTemplatePlaceholders(
+    bodyTemplate,
+    previewValues,
+    undefined,
+    bodyEscape,
+  );
 
   const missingRange = isHistorical && (!inputs.from || !inputs.to);
   const fetchDisabled =
@@ -749,6 +761,7 @@ export function LivePreviewPane({ form, prefix, runtime }: LivePreviewPaneProps)
             <PreviewUrl
               template={bodyTemplate}
               values={previewValues}
+              escape={bodyEscape}
               multiline
               placeholder={t("settings:market_data_page.enter_body_to_preview")}
             />
