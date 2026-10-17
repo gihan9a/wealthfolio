@@ -294,7 +294,7 @@ pub fn build_browser_like_headers(format: &str, url: &str) -> reqwest::header::H
 ///
 /// User headers override defaults. POST requests receive a content type matching
 /// `body_type` only when the user did not configure one explicitly. Form bodies
-/// have their placeholder values percent-encoded.
+/// are trimmed and have their placeholder values percent-encoded.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn prepare_custom_provider_request<E>(
     method: &HttpMethod,
@@ -342,7 +342,7 @@ pub(crate) fn prepare_custom_provider_request<E>(
         body: body_template
             .map(|body| match body_type {
                 BodyType::Json => expand_template(body, ctx),
-                BodyType::Form => expand_template_with(body, ctx, form_encode),
+                BodyType::Form => expand_template_with(body.trim(), ctx, form_encode),
             })
             .transpose()
             .map_err(PrepareRequestError::Template)?,
@@ -889,5 +889,44 @@ mod tests {
         assert!(serde_json::to_string(&form)
             .unwrap()
             .contains(r#""bodyType":"form""#));
+    }
+
+    #[test]
+    fn json_body_values_stay_unencoded() {
+        let context = TemplateContext {
+            symbol: "A&B=C D",
+            currency: "usd",
+            isin: None,
+            mic: None,
+            from: Some("2024-01-01"),
+            to: Some("2024-06-30"),
+        };
+        let prepared = prepare_custom_provider_request(
+            &HttpMethod::Post,
+            "json",
+            "https://example.test/quotes",
+            None,
+            Some(r#"{"symbol":"{SYMBOL}","to":"{TO:%d/%m/%Y}"}"#),
+            BodyType::Json,
+            &context,
+            |value| Ok::<_, ()>(value.to_string()),
+        )
+        .unwrap();
+        let request = prepared
+            .request_builder(&reqwest::Client::new())
+            .build()
+            .unwrap();
+
+        assert_eq!(
+            request.body().and_then(|body| body.as_bytes()),
+            Some(br#"{"symbol":"A&B=C D","to":"30/06/2024"}"#.as_slice())
+        );
+    }
+
+    #[test]
+    fn form_body_template_is_trimmed() {
+        let (_, body) = prepare_form(None, "symbol={SYMBOL}\n", "JKH.N0000");
+
+        assert_eq!(body, "symbol=JKH.N0000");
     }
 }
