@@ -186,6 +186,23 @@ describe("CustomProviderForm", () => {
     );
   });
 
+  it("shows the form-encoded body in the visible request preview", async () => {
+    const user = userEvent.setup();
+
+    render(<CustomProviderForm open onOpenChange={vi.fn()} />);
+    setInputValue(screen.getByLabelText(/url template/i), "https://example.test/api/quote");
+    await user.selectOptions(screen.getByLabelText(/http method/i), "POST");
+    setInputValue(screen.getByLabelText(/request body/i), '{"symbol":"{SYMBOL}"}');
+    setInputValue(screen.getByPlaceholderText("e.g. AAPL"), "A&B=C D");
+    expect(screen.getByText("A&B=C D")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText(/body type/i), "form");
+    setInputValue(screen.getByLabelText(/request body/i), "symbol={SYMBOL}");
+
+    expect(await screen.findByText("A%26B%3DC+D")).toBeInTheDocument();
+    expect(screen.queryByText("A&B=C D")).not.toBeInTheDocument();
+  });
+
   it("resets POST state when applying a quick-start template", async () => {
     const user = userEvent.setup();
 
