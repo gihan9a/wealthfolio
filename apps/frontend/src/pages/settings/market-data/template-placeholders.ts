@@ -59,12 +59,26 @@ export function resolveTemplatePlaceholder(
   return undefined;
 }
 
+/**
+ * Percent-encode a value for an `application/x-www-form-urlencoded` body the way
+ * the backend does (space becomes `+`; only `A-Za-z0-9*-._` stay as they are).
+ */
+export function formEncode(value: string): string {
+  return encodeURIComponent(value)
+    .replace(/[!'()~]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`)
+    .replace(/%20/g, "+");
+}
+
+/** `escape` is applied to each substituted value, never to the template text. */
 export function expandTemplatePlaceholders(
   template: string,
   values: TemplatePlaceholderValues,
   now = new Date(),
+  escape?: (value: string) => string,
 ): string {
   return template.replace(PLACEHOLDER_RE, (match, token: string, format?: string) => {
-    return resolveTemplatePlaceholder(token, format, values, now) ?? match;
+    const resolved = resolveTemplatePlaceholder(token, format, values, now);
+    if (resolved === undefined) return match;
+    return escape ? escape(resolved) : resolved;
   });
 }

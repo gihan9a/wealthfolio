@@ -852,6 +852,13 @@ mod tests {
     }
 
     #[test]
+    fn form_encoding_matches_the_frontend_preview() {
+        assert_eq!(form_encode("JKH.N0000"), "JKH.N0000");
+        assert_eq!(form_encode("a b*c-d_e.f"), "a+b*c-d_e.f");
+        assert_eq!(form_encode("!'()~/&="), "%21%27%28%29%7E%2F%26%3D");
+    }
+
+    #[test]
     fn form_body_keeps_explicit_content_type_header() {
         let (headers, _) = prepare_form(
             Some(r#"{"Content-Type":"application/x-www-form-urlencoded; charset=utf-8"}"#),
