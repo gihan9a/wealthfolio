@@ -21,6 +21,7 @@ import type { FormValues, SourceKey } from "./custom-provider-form";
 import { RawResponseViewer } from "./response-preview";
 import {
   expandTemplatePlaceholders,
+  formEncode,
   resolveTemplatePlaceholder,
   type TemplatePlaceholderValues,
 } from "./template-placeholders";
@@ -692,7 +693,13 @@ export function LivePreviewPane({ form, prefix, runtime }: LivePreviewPaneProps)
 
   const method = form.watch(`${prefix}.method`) ?? "GET";
   const bodyTemplate = form.watch(`${prefix}.body`) ?? "";
-  const expandedBody = expandTemplatePlaceholders(bodyTemplate, previewValues);
+  const bodyType = form.watch(`${prefix}.bodyType`) ?? "json";
+  const expandedBody = expandTemplatePlaceholders(
+    bodyTemplate,
+    previewValues,
+    undefined,
+    bodyType === "form" ? formEncode : undefined,
+  );
 
   const missingRange = isHistorical && (!inputs.from || !inputs.to);
   const fetchDisabled =

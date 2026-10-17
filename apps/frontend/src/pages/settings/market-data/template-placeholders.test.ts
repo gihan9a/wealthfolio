@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { expandTemplatePlaceholders } from "./template-placeholders";
+import { expandTemplatePlaceholders, formEncode } from "./template-placeholders";
 
 describe("template placeholders", () => {
   const now = new Date("2024-06-15T12:34:56Z");
@@ -35,5 +35,22 @@ describe("template placeholders", () => {
 
   it("leaves unsupported date directives unchanged", () => {
     expect(expandTemplatePlaceholders("{FROM:%H}", { FROM: "2024-01-02" }, now)).toBe("{FROM:%H}");
+  });
+
+  it("encodes substituted values but not template text or unresolved placeholders", () => {
+    expect(
+      expandTemplatePlaceholders(
+        "symbol={SYMBOL}&from={FROM:%d/%m/%Y}&kind=a b&x={UNKNOWN}",
+        { SYMBOL: "A&B=C D", FROM: "2024-01-01" },
+        now,
+        formEncode,
+      ),
+    ).toBe("symbol=A%26B%3DC+D&from=01%2F01%2F2024&kind=a b&x={UNKNOWN}");
+  });
+
+  it("form-encodes like the backend", () => {
+    expect(formEncode("JKH.N0000")).toBe("JKH.N0000");
+    expect(formEncode("a b*c-d_e.f")).toBe("a+b*c-d_e.f");
+    expect(formEncode("!'()~/&=")).toBe("%21%27%28%29%7E%2F%26%3D");
   });
 });
