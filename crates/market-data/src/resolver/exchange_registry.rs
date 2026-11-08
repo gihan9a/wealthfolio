@@ -463,6 +463,22 @@ mod tests {
     }
 
     #[test]
+    fn colombo_stock_exchange_is_configured_in_lkr_without_a_quote_provider() {
+        let cse = get_exchange_list()
+            .into_iter()
+            .find(|entry| entry.mic == "XCOL")
+            .expect("XCOL is a current ISO MIC");
+        assert!(cse.configured);
+        assert_eq!(cse.currency.as_deref(), Some("LKR"));
+        assert_eq!(cse.country_code, "LK");
+        assert_eq!(REGISTRY.timezone_by_mic["XCOL"], "Asia/Colombo");
+        assert!(!REGISTRY
+            .yahoo_suffix_to_mic
+            .values()
+            .any(|mic| *mic == "XCOL"));
+    }
+
+    #[test]
     fn legacy_values_normalize_without_polluting_the_catalog() {
         assert_eq!(canonicalize_exchange_mic(" cxe "), "BCXE");
         assert_eq!(canonicalize_exchange_mic("XAQE"), "AQSE");

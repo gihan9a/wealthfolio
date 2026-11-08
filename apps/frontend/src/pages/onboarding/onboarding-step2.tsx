@@ -39,10 +39,11 @@ function createOnboardingSettingsSchema(t: TFunction) {
 
 type OnboardingSettingsSchema = ReturnType<typeof createOnboardingSettingsSchema>;
 
-function detectDefaultCurrency(locale?: string): string | undefined {
+export function detectDefaultCurrency(locale?: string): string | undefined {
   if (!locale && typeof navigator === "undefined") return undefined;
   const lang = locale || navigator.language || navigator.languages[0];
   const localeTag = lang.replaceAll("_", "-").toLowerCase();
+  if (localeTag.split("-").includes("lk")) return "LKR";
   if (lang.startsWith("en-GB")) return "GBP";
   if (lang.startsWith("en-US")) return "USD";
   if (lang.startsWith("en-CA")) return "CAD";
@@ -103,6 +104,7 @@ const formattingRegions = [
   ["IT", "italy"],
   ["RO", "romania"],
   ["BG", "bulgaria"],
+  ["LK", "sriLanka"],
 ] as const;
 
 const popularFormattingRegions = ["system", "US", "CA", "GB"];
@@ -257,7 +259,8 @@ export const OnboardingStep2 = forwardRef<OnboardingStep2Handle, OnboardingStep2
       setShowFormattingRegionSearch(false);
       setFormattingRegionSearch("");
       if (!form.formState.dirtyFields.baseCurrency) {
-        const suggestedCurrency = detectDefaultCurrency(resolveFormattingLocale(region));
+        const suggestedCurrency =
+          region === "LK" ? "LKR" : detectDefaultCurrency(resolveFormattingLocale(region));
         if (suggestedCurrency) {
           form.setValue("baseCurrency", suggestedCurrency, { shouldValidate: true });
         }
