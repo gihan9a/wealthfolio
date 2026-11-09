@@ -26,6 +26,15 @@ describe("locale formatting", () => {
     expect(() => resolveFormattingLocale("ZZ")).toThrow("Invalid formatting locale");
   });
 
+  it("formats Sri Lankan dates as DD/MM/YYYY in Colombo time with the account currency", () => {
+    expect(resolveFormattingLocale("LK")).toBe("en-GB");
+    const formatter = createFormatter(resolveFormattingLocale("LK"), "Asia/Colombo");
+    const sample = new Date(Date.UTC(2026, 6, 23, 20, 0));
+    // 20:00 UTC is already 25:30 in Colombo (UTC+5:30), so the date rolls over.
+    expect(formatter.formatDate(sample, { dateStyle: "short" })).toBe("24/07/2026");
+    expect(formatter.formatAmount(1234.56, "LKR")).toMatch(/LKR\s*1,234\.56/);
+  });
+
   it("resolves regions to authoritative formatting locales", () => {
     expect(resolveFormattingLocale("de-DE", "en")).toBe("de-DE");
     expect(resolveFormattingLocale("DE", "en")).toBe("de-DE");

@@ -686,6 +686,15 @@
       }
     },
     {
+      "mic": "XCOL",
+      "name": "CSE",
+      "long_name": "Colombo Stock Exchange",
+      "currency": "LKR",
+      "timezone": "Asia/Colombo",
+      "close": [14, 30],
+      "providers": {}
+    },
+    {
       "mic": "XBOM",
       "name": "BSE",
       "long_name": "Bombay Stock Exchange",

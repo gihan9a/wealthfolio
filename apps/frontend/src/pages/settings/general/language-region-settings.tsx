@@ -57,6 +57,7 @@ const FORMATTING_REGION_OPTIONS = [
   ["IT", "italy"],
   ["RO", "romania"],
   ["BG", "bulgaria"],
+  ["LK", "sriLanka"],
 ] as const;
 
 // A currency override names a concrete region; "system" is the global default.

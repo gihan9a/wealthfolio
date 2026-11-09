@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 const SUPPORTED_FORMATTING_REGIONS: &[&str] = &[
     "system", "CA", "US", "GB", "IN", "FR", "DE", "AT", "CH", "ES", "MX", "BR", "PT", "CN", "TW",
-    "JP", "KR", "IT", "RO", "BG",
+    "JP", "KR", "IT", "RO", "BG", "LK",
 ];
 const SUPPORTED_UI_LANGUAGES: &[&str] = &[
     "en", "fr", "de", "es", "pt", "zh", "zh-Hant", "ja", "ko", "it", "ar",
@@ -550,6 +550,13 @@ mod tests {
     }
 
     #[test]
+    fn accepts_sri_lanka_as_a_persisted_and_currency_formatting_region() {
+        assert_eq!(normalize_formatting_region("en", "LK"), "LK");
+        assert_eq!(normalize_formatting_region("en", "en-lk"), "LK");
+        assert!(validate_currency_formatting_regions(&regions(&[("LKR", "LK")])).is_ok());
+    }
+
+    #[test]
     fn rejects_unknown_formatting_region_updates() {
         assert!(validate_formatting_region("DE").is_ok());
         assert!(validate_formatting_region("JP").is_ok());
@@ -561,6 +568,7 @@ mod tests {
         assert!(validate_formatting_region("AT").is_ok());
         assert!(validate_formatting_region("RO").is_ok());
         assert!(validate_formatting_region("BG").is_ok());
+        assert!(validate_formatting_region("LK").is_ok());
         assert!(validate_formatting_region("de-DE").is_err());
     }
 
