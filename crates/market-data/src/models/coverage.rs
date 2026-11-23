@@ -159,6 +159,17 @@ impl Coverage {
         }
     }
 
+    /// Colombo Stock Exchange only, strict mode.
+    /// Rejects mic=None: a bare ticker is not proof of a CSE listing.
+    pub const fn cse_lk() -> Self {
+        Self {
+            equity_mic_allow: Some(&["XCOL"]),
+            equity_mic_deny: None,
+            allow_unknown_mic: false,
+            metal_quote_ccy_allow: None,
+        }
+    }
+
     /// Metals only, USD quotes only.
     pub const fn metals_usd_only() -> Self {
         Self {
@@ -297,6 +308,27 @@ mod tests {
         assert!(!coverage.supports(&bare));
         assert!(coverage.is_exchange_scoped());
         assert!(!Coverage::global_best_effort().is_exchange_scoped());
+    }
+
+    #[test]
+    fn test_cse_lk_accepts_only_xcol() {
+        let coverage = Coverage::cse_lk();
+        let xcol = InstrumentId::Equity {
+            ticker: Arc::from("JKH.N0000"),
+            mic: Some(Cow::Borrowed("XCOL")),
+        };
+        let xcnq = InstrumentId::Equity {
+            ticker: Arc::from("JKH.N0000"),
+            mic: Some(Cow::Borrowed("XCNQ")),
+        };
+        let bare = InstrumentId::Equity {
+            ticker: Arc::from("JKH.N0000"),
+            mic: None,
+        };
+        assert!(coverage.supports(&xcol));
+        assert!(!coverage.supports(&xcnq));
+        assert!(!coverage.supports(&bare));
+        assert!(coverage.is_exchange_scoped());
     }
 
     #[test]

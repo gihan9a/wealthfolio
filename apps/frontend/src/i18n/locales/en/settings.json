@@ -921,6 +921,7 @@
     "failed_count_one": "{{count}} failed",
     "failed_count_other": "{{count}} failed",
     "providerDescriptions": {
+      "CSE_LK": "Daily prices for securities on the Colombo Stock Exchange, from the public feed on cse.lk. Unofficial source. No API key required.",
       "MOEX": "Moscow Exchange ISS provides delayed and end-of-day prices for shares, depositary receipts and ETFs traded on MOEX. No API key required.",
       "YAHOO": "Yahoo Finance is a leading financial data provider for many markets. It provides historical and real-time stock data.",
       "MARKETDATA_APP": "MarketData.app provides real-time and historical data for U.S. stocks, options, ETFs, mutual funds, and more.",
@@ -931,6 +932,9 @@
       "METAL_PRICE_API": "Provides real-time and historical spot prices for precious metals (gold, silver, platinum, palladium).",
       "CUSTOM_SCRAPER": "Runtime dispatch provider for user-defined custom sources",
       "FINNHUB": "Finnhub provides real-time stock, forex, and cryptocurrency data with global coverage. Free tier includes 60 API calls/minute."
+    },
+    "providerDisclaimers": {
+      "CSE_LK": "Unofficial data source. Wealthfolio is not affiliated with or endorsed by the Colombo Stock Exchange. Prices come from an undocumented feed on cse.lk and may be delayed, incorrect or unavailable without notice. You are responsible for making sure your use complies with the exchange's terms."
     },
     "coverageLabels": {
       "Global": "Global",

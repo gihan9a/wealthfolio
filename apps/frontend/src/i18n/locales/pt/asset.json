@@ -236,6 +236,8 @@
   "editSheet": {
     "moex_symbol_placeholder": "ex.: SBER, AFLT",
     "moex_symbol_hint": "Use um código de título da MOEX sem prefixo ou sufixo. Defina a bolsa como Moscow Exchange (MISX).",
+    "cse_lk_symbol_placeholder": "ex.: JKH.N0000, COMB.X0000",
+    "cse_lk_symbol_hint": "Use o símbolo completo da CSE com o sufixo de classe, como JKH.N0000 ou COMB.X0000. Defina a bolsa como Colombo Stock Exchange (XCOL).",
     "identity_conflict": "Outro ativo já tem esta identidade. As alterações não foram guardadas. Utilize o ativo existente ou escolha outra bolsa.",
     "general": "Geral",
     "classification": "Classificação",

@@ -442,7 +442,9 @@ function SymbolMappingRow({
                     placeholder={
                       provider === "MOEX"
                         ? t("asset:editSheet.moex_symbol_placeholder")
-                        : getSymbolPlaceholder(provider ?? "")
+                        : provider === "CSE_LK"
+                          ? t("asset:editSheet.cse_lk_symbol_placeholder")
+                          : getSymbolPlaceholder(provider ?? "")
                     }
                     {...{
                       ...symbolField,
@@ -472,6 +474,11 @@ function SymbolMappingRow({
               {provider === "MOEX" && (
                 <p className="text-muted-foreground text-xs">
                   {t("asset:editSheet.moex_symbol_hint")}
+                </p>
+              )}
+              {provider === "CSE_LK" && (
+                <p className="text-muted-foreground text-xs">
+                  {t("asset:editSheet.cse_lk_symbol_hint")}
                 </p>
               )}
             </FormItem>

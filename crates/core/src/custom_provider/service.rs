@@ -20,6 +20,7 @@ const RESERVED_CODES: &[&str] = &[
     "us_treasury_calc",
     "boerse_frankfurt",
     "amfi",
+    "cse_lk",
     "custom_scraper",
     "manual",
     "broker",

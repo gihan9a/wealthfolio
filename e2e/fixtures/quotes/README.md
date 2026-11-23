@@ -30,6 +30,8 @@ starting `dev:web`. In that mode:
   as `BOERSE_FRANKFURT`.
 - `MOEX` is replaced by the same fixture provider with strict `MISX` coverage.
   Synthetic RUB listings cover ticker collisions and provider mappings.
+- `CSE_LK` is replaced by the same fixture provider with strict `XCOL` coverage
+  and a synthetic LKR listing.
 - `US_TREASURY_CALC` uses the production provider with the local security and
   yield responses. Its parsing, nominal-term validation, and pricing remain
   real. Missing fixture securities or years fail without an HTTP fallback.

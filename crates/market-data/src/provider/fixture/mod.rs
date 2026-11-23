@@ -563,6 +563,17 @@ impl MarketDataProvider for FixtureProvider {
                 supports_dividends: false,
             };
         }
+        if self.provider_id == "CSE_LK" {
+            return ProviderCapabilities {
+                instrument_kinds: &[InstrumentKind::Equity],
+                coverage: Coverage::cse_lk(),
+                supports_latest: true,
+                supports_historical: true,
+                supports_search: false,
+                supports_profile: true,
+                supports_dividends: false,
+            };
+        }
         if self.provider_id == "BOERSE_FRANKFURT" {
             return ProviderCapabilities {
                 instrument_kinds: &[InstrumentKind::Equity, InstrumentKind::Bond],
@@ -1112,6 +1123,26 @@ mod tests {
         assert_eq!(quotes[0].currency, "USD");
         assert!(quotes[0].close > "0.9".parse().unwrap());
         assert!(quotes[0].close < "1.1".parse().unwrap());
+    }
+
+    #[tokio::test]
+    async fn cse_lk_fixture_prices_only_xcol_in_lkr() {
+        let provider = FixtureProvider::new_for_provider(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../e2e/fixtures/quotes"),
+            "CSE_LK",
+        );
+        let profile = provider.get_profile("JKH.N0000").await.unwrap();
+        assert_eq!(profile.currency.as_deref(), Some("LKR"));
+        let capabilities = provider.capabilities();
+        assert!(!capabilities.supports_search);
+        assert!(capabilities.supports_instrument(&InstrumentId::Equity {
+            ticker: Arc::from("JKH.N0000"),
+            mic: Some(Cow::Borrowed("XCOL")),
+        }));
+        assert!(!capabilities.supports_instrument(&InstrumentId::Equity {
+            ticker: Arc::from("JKH.N0000"),
+            mic: None,
+        }));
     }
 
     #[tokio::test]

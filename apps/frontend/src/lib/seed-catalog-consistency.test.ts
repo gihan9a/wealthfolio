@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import englishTaxonomies from "@/i18n/locales/en/taxonomies.json";
 import englishSpending from "@/i18n/locales/en/spending.json";
+import englishSettings from "@/i18n/locales/en/settings.json";
 
 const migrations = fileURLToPath(
   new URL("../../../../crates/storage-sqlite/migrations/", import.meta.url),
@@ -56,6 +57,16 @@ describe("English display catalogs match persisted seed identities", () => {
 
   it("matches every seeded budget-group ID and exact English name", () => {
     expect(englishSpending.budgetGroupNames).toEqual(names("SELECT id, name FROM budget_groups"));
+  });
+
+  // getProviderDescription translates a seeded description only when it is
+  // exactly the English catalog's.
+  it("seeds cse.lk switched off with the English catalog's description", () => {
+    const row = db
+      .prepare("SELECT description, enabled FROM market_data_providers WHERE id = 'CSE_LK'")
+      .get();
+    expect(row?.description).toBe(englishSettings.market_data_page.providerDescriptions.CSE_LK);
+    expect(Number(row?.enabled)).toBe(0);
   });
 
   it("matches every seeded event-type ID and exact English name", () => {

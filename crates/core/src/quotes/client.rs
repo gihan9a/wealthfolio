@@ -39,10 +39,10 @@ use crate::secrets::SecretStore;
 use wealthfolio_market_data::{
     mic_to_currency, mic_to_exchange_name, yahoo_equity_provider_symbol_to_canonical,
     yahoo_exchange_to_mic, yahoo_suffix_to_mic, AlphaVantageProvider, AmfiProvider,
-    AssetProfile as MarketAssetProfile, BoerseFrankfurtProvider, DividendEvent, ExchangeMap,
-    FinnhubProvider, FixtureProvider, MarketDataAppProvider, MetalPriceApiProvider, MoexProvider,
-    OpenFigiProvider, ProviderId, ProviderRegistry, Quote as MarketQuote, QuoteContext,
-    QuoteIdentifiers, ResolverChain, SearchResult as MarketSearchResult, SplitEvent,
+    AssetProfile as MarketAssetProfile, BoerseFrankfurtProvider, CseLkProvider, DividendEvent,
+    ExchangeMap, FinnhubProvider, FixtureProvider, MarketDataAppProvider, MetalPriceApiProvider,
+    MoexProvider, OpenFigiProvider, ProviderId, ProviderRegistry, Quote as MarketQuote,
+    QuoteContext, QuoteIdentifiers, ResolverChain, SearchResult as MarketSearchResult, SplitEvent,
     UsTreasuryCalcProvider, YahooProvider,
 };
 
@@ -241,6 +241,10 @@ impl MarketDataClient {
                 fixture_dir,
                 DATA_SOURCE_MOEX,
             )))),
+            DATA_SOURCE_CSE_LK => Ok(Some(Arc::new(FixtureProvider::new_for_provider(
+                fixture_dir,
+                DATA_SOURCE_CSE_LK,
+            )))),
             DATA_SOURCE_MARKET_DATA_APP
             | DATA_SOURCE_ALPHA_VANTAGE
             | DATA_SOURCE_METAL_PRICE_API
@@ -334,6 +338,10 @@ impl MarketDataClient {
             DATA_SOURCE_MOEX => {
                 // Moscow Exchange shares, DRs and ETFs via the public ISS API (no API key)
                 Ok(Some(Arc::new(MoexProvider::new())))
+            }
+            DATA_SOURCE_CSE_LK => {
+                // Colombo Stock Exchange daily prices from the public cse.lk feed (no API key)
+                Ok(Some(Arc::new(CseLkProvider::new())))
             }
             _ => {
                 warn!("Unknown provider ID: {}", provider_id);
@@ -429,6 +437,12 @@ impl MarketDataClient {
             return Err(MarketDataClientError::InvalidData(
                 "Reset is unavailable for custom scrapers because historical fetching may fall back to a latest price".into(),
             ).into());
+        }
+        if asset.preferred_provider().as_deref() == Some(DATA_SOURCE_CSE_LK) {
+            return Err(MarketDataClientError::InvalidData(
+                wealthfolio_market_data::provider::cse_lk::RESET_REFUSAL.into(),
+            )
+            .into());
         }
         let context = self.build_quote_context(asset)?;
         let quotes = self
@@ -1497,6 +1511,93 @@ mod tests {
             .unwrap_err();
 
         assert_eq!(error.provider_id.as_deref(), Some("ALPHA_VANTAGE"));
+    }
+
+    /// Counts the requests a fake CSE_LK provider would send to cse.lk.
+    #[derive(Default)]
+    struct CountingCseProvider(std::sync::atomic::AtomicUsize);
+
+    #[async_trait::async_trait]
+    impl wealthfolio_market_data::MarketDataProvider for CountingCseProvider {
+        fn id(&self) -> &'static str {
+            DATA_SOURCE_CSE_LK
+        }
+
+        fn capabilities(&self) -> wealthfolio_market_data::ProviderCapabilities {
+            wealthfolio_market_data::ProviderCapabilities {
+                instrument_kinds: &[wealthfolio_market_data::InstrumentKind::Equity],
+                coverage: wealthfolio_market_data::Coverage::cse_lk(),
+                supports_latest: true,
+                supports_historical: true,
+                supports_search: false,
+                supports_profile: false,
+                supports_dividends: false,
+            }
+        }
+
+        fn rate_limit(&self) -> wealthfolio_market_data::RateLimit {
+            wealthfolio_market_data::RateLimit::default()
+        }
+
+        async fn get_latest_quote(
+            &self,
+            _context: &QuoteContext,
+            _instrument: wealthfolio_market_data::ProviderInstrument,
+        ) -> std::result::Result<MarketQuote, wealthfolio_market_data::errors::MarketDataError>
+        {
+            self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Ok(MarketQuote::new(
+                Utc::now(),
+                dec!(18.7),
+                "LKR".into(),
+                DATA_SOURCE_CSE_LK.into(),
+            ))
+        }
+
+        async fn get_historical_quotes(
+            &self,
+            context: &QuoteContext,
+            instrument: wealthfolio_market_data::ProviderInstrument,
+            _start: DateTime<Utc>,
+            _end: DateTime<Utc>,
+        ) -> std::result::Result<Vec<MarketQuote>, wealthfolio_market_data::errors::MarketDataError>
+        {
+            Ok(vec![self.get_latest_quote(context, instrument).await?])
+        }
+    }
+
+    /// cse.lk keeps about a year, so replacing a longer stored history would
+    /// delete the older quotes: reset is refused before any request, whether
+    /// the asset prefers CSE_LK or would only fall to it.
+    #[tokio::test]
+    async fn reset_is_refused_for_cse_lk_before_any_request() {
+        let provider = Arc::new(CountingCseProvider::default());
+        let client =
+            MarketDataClient::new_with_extra(Arc::new(NoSecrets), vec![], vec![provider.clone()])
+                .await
+                .unwrap();
+        let mut asset = create_test_asset(AssetKind::Investment, "JKH.N0000", "LKR");
+        asset.instrument_exchange_mic = Some("XCOL".to_string());
+
+        for provider_config in [
+            Some(serde_json::json!({ "preferred_provider": "CSE_LK" })),
+            None,
+        ] {
+            asset.provider_config = provider_config;
+            let error = client
+                .fetch_history_for_reset(&asset, Utc::now(), Utc::now())
+                .await
+                .unwrap_err();
+            assert!(error.to_string().contains("about one year"), "{error}");
+        }
+        assert_eq!(provider.0.load(std::sync::atomic::Ordering::SeqCst), 0);
+
+        // Ordinary syncs still use it.
+        client
+            .fetch_historical_quotes_with_context(&asset, Utc::now(), Utc::now())
+            .await
+            .unwrap();
+        assert_eq!(provider.0.load(std::sync::atomic::Ordering::SeqCst), 1);
     }
 
     #[test]

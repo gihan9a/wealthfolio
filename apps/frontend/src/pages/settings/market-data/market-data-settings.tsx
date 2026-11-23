@@ -73,6 +73,7 @@ import { Switch } from "@wealthfolio/ui/components/ui/switch";
 import { CustomProviderForm } from "./custom-provider-form";
 import { CustomProviderUsageChips } from "./custom-provider-usage-chips";
 import { ProviderCatalogDialog } from "./provider-catalog-dialog";
+import { ProviderDisclaimer } from "./provider-disclaimer";
 import { ProviderLogo } from "./provider-logo";
 import { moveProvider } from "./provider-order";
 import {
@@ -352,6 +353,9 @@ function ProviderSettings({
           {/* Phones give the name and badges the row's width; the controls sit under them. */}
           {isMobile && <div className="-ms-3.5 mt-1 flex items-center">{providerControls}</div>}
         </SettingsListRow>
+
+        {/* Beside the switch, so it shows however the row is collapsed or switched. */}
+        <ProviderDisclaimer providerId={provider.id} className="mt-3" />
 
         {/* Expandable settings */}
         <CollapsibleContent>

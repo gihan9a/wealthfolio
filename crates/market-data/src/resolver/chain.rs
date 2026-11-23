@@ -190,6 +190,46 @@ mod tests {
     }
 
     #[test]
+    fn test_chain_honours_an_override_on_an_xcol_asset() {
+        let chain = ResolverChain::new();
+        let mut overrides = ProviderOverrides::new();
+        overrides.insert(
+            "YAHOO".to_string(),
+            ProviderInstrument::EquitySymbol {
+                symbol: Arc::from("JKH-N0000.CM"),
+            },
+        );
+        let mut context = QuoteContext {
+            instrument: InstrumentId::Equity {
+                ticker: Arc::from("JKH.N0000"),
+                mic: Some("XCOL".into()),
+            },
+            identifiers: Default::default(),
+            overrides: Some(overrides),
+            currency_hint: Some("LKR".into()),
+            preferred_provider: None,
+            bond_metadata: None,
+            custom_provider_code: None,
+        };
+
+        let resolved = chain.resolve(&"YAHOO".into(), &context).unwrap();
+        assert_eq!(resolved.source, ResolutionSource::Override);
+        match resolved.instrument {
+            ProviderInstrument::EquitySymbol { symbol } => {
+                assert_eq!(symbol.as_ref(), "JKH-N0000.CM");
+            }
+            _ => panic!("Expected EquitySymbol"),
+        }
+
+        // Without the override the same provider only has a guess.
+        context.overrides = None;
+        let resolved = chain.resolve(&"YAHOO".into(), &context).unwrap();
+        assert_eq!(resolved.source, ResolutionSource::RulesFallback);
+        let resolved = chain.resolve(&"CSE_LK".into(), &context).unwrap();
+        assert_eq!(resolved.source, ResolutionSource::Rules);
+    }
+
+    #[test]
     fn test_chain_falls_through_to_rules() {
         let chain = ResolverChain::new();
 

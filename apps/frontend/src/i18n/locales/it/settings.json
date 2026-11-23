@@ -990,6 +990,7 @@
     "failed_count_other": "{{count}} non riuscite",
     "feature_dividends": "Dividendi",
     "providerDescriptions": {
+      "CSE_LK": "Prezzi giornalieri dei titoli della Colombo Stock Exchange, dal feed pubblico di cse.lk. Fonte non ufficiale. Non è richiesta una chiave API.",
       "MOEX": "Moscow Exchange ISS fornisce prezzi ritardati e di fine giornata per azioni, certificati di deposito ed ETF negoziati su MOEX. Non è richiesta una chiave API.",
       "YAHOO": "Yahoo Finance è un fornitore leader di dati finanziari per molti mercati. Fornisce dati azionari storici e in tempo reale.",
       "MARKETDATA_APP": "MarketData.app fornisce dati storici e in tempo reale per azioni, opzioni, ETF, fondi comuni di investimento statunitensi e altro ancora.",
@@ -1000,6 +1001,9 @@
       "METAL_PRICE_API": "Fornisce prezzi spot storici e in tempo reale per i metalli preziosi (oro, argento, platino, palladio).",
       "CUSTOM_SCRAPER": "Provider di invio runtime per origini personalizzate definite dall'utente",
       "FINNHUB": "Finnhub fornisce dati globali in tempo reale su azioni, forex e criptovalute. Il piano gratuito include 60 chiamate API al minuto."
+    },
+    "providerDisclaimers": {
+      "CSE_LK": "Fonte di dati non ufficiale. Wealthfolio non è affiliato alla Colombo Stock Exchange né approvato da essa. I prezzi provengono da un feed non documentato di cse.lk e possono essere in ritardo, errati o non disponibili senza preavviso. È tua responsabilità assicurarti che il tuo utilizzo rispetti i termini della borsa."
     },
     "coverageLabels": {
       "Global": "Globale",

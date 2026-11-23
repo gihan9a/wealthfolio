@@ -295,6 +295,8 @@
   "editSheet": {
     "moex_symbol_placeholder": "مثل SBER، AFLT",
     "moex_symbol_hint": "استخدم رمز ورقة مالية في MOEX دون بادئة أو لاحقة. اختر Moscow Exchange (MISX) كبورصة.",
+    "cse_lk_symbol_placeholder": "مثل JKH.N0000، COMB.X0000",
+    "cse_lk_symbol_hint": "استخدم رمز CSE الكامل مع لاحقة الفئة، مثل JKH.N0000 أو COMB.X0000. اختر Colombo Stock Exchange (XCOL) كبورصة.",
     "add": "إضافة",
     "auto_default": "تلقائي (افتراضي)",
     "automatic_off_description": "المزامنة التلقائية متوقفة. أنت تدير الأسعار يدويًا.",

@@ -157,6 +157,15 @@ impl ProviderRegistry {
             {
                 continue;
             }
+            // cse.lk serves about a year of history, so replacing a longer
+            // stored history would delete the older quotes for good.
+            if provider.id() == crate::provider::cse_lk::PROVIDER_ID {
+                last_error = MarketDataError::NotSupported {
+                    operation: crate::provider::cse_lk::RESET_REFUSAL.into(),
+                    provider: provider.id().into(),
+                };
+                continue;
+            }
             // Custom scrapers may turn a failed history request into a latest quote.
             if provider.id() == DATA_SOURCE_CUSTOM_SCRAPER {
                 last_error = MarketDataError::NotSupported {
@@ -1829,6 +1838,127 @@ mod tests {
         }
     }
 
+    /// A mock provider limited to XCOL, as CSE_LK is.
+    struct XcolProvider(MockProvider);
+
+    #[async_trait::async_trait]
+    impl MarketDataProvider for XcolProvider {
+        fn id(&self) -> &'static str {
+            self.0.id()
+        }
+        fn priority(&self) -> u8 {
+            self.0.priority()
+        }
+        fn capabilities(&self) -> ProviderCapabilities {
+            ProviderCapabilities {
+                instrument_kinds: &[InstrumentKind::Equity],
+                coverage: Coverage::cse_lk(),
+                ..self.0.capabilities()
+            }
+        }
+        fn rate_limit(&self) -> RateLimit {
+            self.0.rate_limit()
+        }
+        async fn get_latest_quote(
+            &self,
+            context: &QuoteContext,
+            instrument: ProviderInstrument,
+        ) -> Result<Quote, MarketDataError> {
+            self.0.get_latest_quote(context, instrument).await
+        }
+        async fn get_historical_quotes(
+            &self,
+            context: &QuoteContext,
+            instrument: ProviderInstrument,
+            start: DateTime<Utc>,
+            end: DateTime<Utc>,
+        ) -> Result<Vec<Quote>, MarketDataError> {
+            self.0
+                .get_historical_quotes(context, instrument, start, end)
+                .await
+        }
+    }
+
+    fn xcol_context(overrides: Option<crate::models::ProviderOverrides>) -> QuoteContext {
+        QuoteContext {
+            instrument: InstrumentId::Equity {
+                ticker: Arc::from("JKH.N0000"),
+                mic: Some(Cow::Borrowed("XCOL")),
+            },
+            identifiers: Default::default(),
+            overrides,
+            currency_hint: Some(Cow::Borrowed("LKR")),
+            preferred_provider: None,
+            bond_metadata: None,
+            custom_provider_code: None,
+        }
+    }
+
+    /// CSE_LK resolves an XCOL symbol as a rule, so it is not skipped as an
+    /// unverified fallback; other providers have no XCOL mapping and are.
+    #[tokio::test]
+    async fn xcol_quotes_come_from_cse_lk_and_never_a_bare_ticker_elsewhere() {
+        let now = Utc::now();
+        for cse_fails in [false, true] {
+            let cse = Arc::new(XcolProvider(MockProvider::new("CSE_LK", 16, cse_fails)));
+            let yahoo = Arc::new(MockProvider::new("YAHOO", 1, false));
+            let finnhub = Arc::new(MockProvider::new("FINNHUB", 2, false));
+            let providers: Vec<Arc<dyn MarketDataProvider>> =
+                vec![cse.clone(), yahoo.clone(), finnhub.clone()];
+            let registry = ProviderRegistry::new(providers, Arc::new(ResolverChain::new()));
+
+            let result = registry.fetch_quotes(&xcol_context(None), now, now).await;
+            assert_eq!(result.is_ok(), !cse_fails);
+            assert_eq!(cse.0.call_count.load(Ordering::SeqCst), 1);
+            assert_eq!(
+                yahoo.call_count.load(Ordering::SeqCst),
+                0,
+                "fails={cse_fails}"
+            );
+            assert_eq!(finnhub.call_count.load(Ordering::SeqCst), 0);
+
+            // Other assets still reach the other providers, and not CSE_LK.
+            let aapl = equity_context(None, None);
+            registry.fetch_quotes(&aapl, now, now).await.unwrap();
+            assert_eq!(yahoo.call_count.load(Ordering::SeqCst), 1);
+            assert_eq!(cse.0.call_count.load(Ordering::SeqCst), 1);
+        }
+
+        // Disabled: the registry holds no CSE_LK, and nothing quotes XCOL.
+        let yahoo = Arc::new(MockProvider::new("YAHOO", 1, false));
+        let registry = ProviderRegistry::new(vec![yahoo.clone()], Arc::new(ResolverChain::new()));
+        assert!(registry
+            .fetch_quotes(&xcol_context(None), now, now)
+            .await
+            .is_err());
+        assert_eq!(yahoo.call_count.load(Ordering::SeqCst), 0);
+    }
+
+    /// An explicit symbol mapping takes the override path, not the rules, so
+    /// it reaches the provider the user chose for an XCOL asset.
+    #[tokio::test]
+    async fn explicit_override_on_an_xcol_asset_is_honoured() {
+        let cse = Arc::new(XcolProvider(MockProvider::new("CSE_LK", 16, true)));
+        let yahoo = Arc::new(MockProvider::new("YAHOO", 1, false));
+        let providers: Vec<Arc<dyn MarketDataProvider>> = vec![cse.clone(), yahoo.clone()];
+        let registry = ProviderRegistry::new(providers, Arc::new(ResolverChain::new()));
+        let mut overrides = crate::models::ProviderOverrides::new();
+        overrides.insert(
+            "YAHOO".to_string(),
+            ProviderInstrument::EquitySymbol {
+                symbol: Arc::from("JKH-N0000.CM"),
+            },
+        );
+
+        let now = Utc::now();
+        let quotes = registry
+            .fetch_quotes(&xcol_context(Some(overrides)), now, now)
+            .await
+            .unwrap();
+        assert_eq!(quotes[0].source, "YAHOO");
+        assert_eq!(yahoo.call_count.load(Ordering::SeqCst), 1);
+    }
+
     #[tokio::test]
     async fn enabled_amfi_only_prices_funds_that_chose_it() {
         let amfi = Arc::new(MockProvider::new("AMFI", 1, false));
@@ -2825,6 +2955,50 @@ mod tests {
             .is_err());
         assert_eq!(provider.call_count.load(Ordering::SeqCst), 0);
     }
+    /// cse.lk keeps about a year, so a reset would delete older quotes: it is
+    /// refused before any request, whether or not the asset prefers it.
+    #[tokio::test]
+    async fn reset_refuses_cse_lk_before_any_request() {
+        for preferred in [Some("CSE_LK"), None] {
+            let cse = reset_provider("CSE_LK", vec![dec!(100)], false);
+            let registry = ProviderRegistry::new(vec![cse.clone()], Arc::new(MockResolver));
+            let context = QuoteContext {
+                instrument: InstrumentId::Equity {
+                    ticker: Arc::from("JKH.N0000"),
+                    mic: Some(Cow::Borrowed("XCOL")),
+                },
+                identifiers: Default::default(),
+                overrides: None,
+                currency_hint: Some(Cow::Borrowed("LKR")),
+                preferred_provider: preferred.map(Cow::Borrowed),
+                bond_metadata: None,
+                custom_provider_code: None,
+            };
+            let error = registry
+                .fetch_quotes_for_reset(&context, Utc::now(), Utc::now())
+                .await
+                .unwrap_err();
+            assert!(
+                error.to_string().contains("about one year"),
+                "{preferred:?}: {error}"
+            );
+            assert_eq!(cse.base.call_count.load(Ordering::SeqCst), 0);
+        }
+
+        // Another provider still resets an asset that does not prefer CSE_LK.
+        let cse = reset_provider("CSE_LK", vec![dec!(100)], false);
+        let other = reset_provider("OTHER", vec![dec!(100)], false);
+        let registry =
+            ProviderRegistry::new(vec![cse.clone(), other.clone()], Arc::new(MockResolver));
+        let context = equity_context(None, None);
+        let quotes = registry
+            .fetch_quotes_for_reset(&context, Utc::now(), Utc::now())
+            .await
+            .unwrap();
+        assert_eq!(quotes[0].source, "OTHER");
+        assert_eq!(cse.base.call_count.load(Ordering::SeqCst), 0);
+    }
+
     #[tokio::test]
     async fn reset_validates_requested_dates_without_requiring_exact_times() {
         let start = DateTime::parse_from_rfc3339("2025-01-02T12:00:00Z")
