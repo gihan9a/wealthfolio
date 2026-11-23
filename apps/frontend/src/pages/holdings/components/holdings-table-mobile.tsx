@@ -1,3 +1,4 @@
+import { HoldingPerformancePercent } from "@/components/holding-performance-percent";
 import { TickerAvatar } from "@/components/ticker-avatar";
 import { useBalancePrivacy } from "@/hooks/use-balance-privacy";
 import { HoldingType } from "@/lib/constants";
@@ -7,7 +8,6 @@ import { cn } from "@/lib/utils";
 import {
   AmountDisplay,
   Badge,
-  GainPercent,
   Input,
   Separator,
   useAmountFormatting,
@@ -18,10 +18,11 @@ import { Button } from "@wealthfolio/ui/components/ui/button";
 import { Card, cardSurfaceClassName } from "@wealthfolio/ui/components/ui/card";
 import { Icons } from "@wealthfolio/ui/components/ui/icons";
 import { Skeleton } from "@wealthfolio/ui/components/ui/skeleton";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { HoldingsMobileFilterSheet } from "./holdings-mobile-filter-sheet";
+import { CashHoldingsSheet } from "./cash-holdings-sheet";
 import {
   compareCashFirst,
   DEFAULT_HOLDINGS_VISIBILITY,
@@ -90,6 +91,13 @@ export const HoldingsTableMobile = ({
   const { isBalanceHidden } = useBalancePrivacy();
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const [cashCurrency, setCashCurrency] = useState<string | null>(null);
+  const cashHolding = holdings.find(
+    (holding) => holding.holdingType === HoldingType.CASH && holding.localCurrency === cashCurrency,
+  );
+  useEffect(() => {
+    if (!cashHolding) setCashCurrency(null);
+  }, [cashHolding]);
 
   // Internal state for uncontrolled mode
   const [internalSortBy, setInternalSortBy] = useState<"symbol" | "marketValue">("marketValue");
@@ -240,7 +248,7 @@ export const HoldingsTableMobile = ({
                     <p className="text-muted-foreground font-medium">—</p>
                   ) : (
                     <AmountDisplay
-                      value={holding.marketValue?.local ?? 0}
+                      value={holding.marketValue?.local}
                       currency={holding.localCurrency}
                       isHidden={isBalanceHidden}
                       className="font-medium"
@@ -249,7 +257,8 @@ export const HoldingsTableMobile = ({
                   {isCash && (
                     <p className="text-muted-foreground text-xs">
                       {t("holdings:weight_value", {
-                        value: formatting.formatPercent(holding.weight ?? 0),
+                        value:
+                          holding.weight == null ? "—" : formatting.formatPercent(holding.weight),
                       })}
                     </p>
                   )}
@@ -261,10 +270,10 @@ export const HoldingsTableMobile = ({
                         <AmountDisplay
                           value={
                             performanceMode === "return"
-                              ? (holding.totalReturn?.local ?? holding.totalGain?.local ?? 0)
+                              ? holding.totalReturn?.local
                               : performanceMode === "pnl"
-                                ? (holding.totalGain?.local ?? 0)
-                                : (holding.dayChange?.local ?? 0)
+                                ? holding.totalGain?.local
+                                : holding.dayChange?.local
                           }
                           currency={holding.localCurrency}
                           isHidden={isBalanceHidden}
@@ -272,13 +281,13 @@ export const HoldingsTableMobile = ({
                           className="text-xs"
                         />
                         <Separator orientation="vertical" className="mx-1 h-4" />
-                        <GainPercent
+                        <HoldingPerformancePercent
                           value={
                             performanceMode === "return"
-                              ? (holding.totalReturnPct ?? holding.totalGainPct ?? 0)
+                              ? holding.totalReturnPct
                               : performanceMode === "pnl"
-                                ? (holding.totalGainPct ?? 0)
-                                : (holding.dayChangePct ?? 0)
+                                ? holding.totalGainPct
+                                : holding.dayChangePct
                           }
                           className="text-xs"
                         />
@@ -287,7 +296,22 @@ export const HoldingsTableMobile = ({
                 </div>
               </div>
             );
-            return isNavigable ? (
+            return isCash ? (
+              <button
+                key={holding.id}
+                type="button"
+                onClick={() => setCashCurrency(holding.localCurrency)}
+                aria-label={t("holdings:details_for", {
+                  name: t("holdings:cash_with_currency", { currency: holding.localCurrency }),
+                })}
+                className={cn(
+                  cardSurfaceClassName,
+                  "hover:bg-muted/50 focus-visible:ring-ring block w-full p-3 text-start outline-none transition-colors focus-visible:ring-2",
+                )}
+              >
+                {content}
+              </button>
+            ) : isNavigable ? (
               <Link
                 key={holding.id}
                 to={`/holdings/${encodeURIComponent(assetId)}`}
@@ -316,6 +340,15 @@ export const HoldingsTableMobile = ({
           </div>
         )}
       </div>
+
+      {cashHolding && (
+        <CashHoldingsSheet
+          currency={cashHolding.localCurrency}
+          accountFilter={accountFilter}
+          accounts={accounts}
+          onClose={() => setCashCurrency(null)}
+        />
+      )}
 
       {/* Filter Sheet */}
       <HoldingsMobileFilterSheet

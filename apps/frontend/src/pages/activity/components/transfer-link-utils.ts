@@ -1,5 +1,7 @@
-import { ActivityType } from "@/lib/constants";
-import { getEffectiveType } from "@/lib/types";
+import type { TFunction } from "i18next";
+
+import { ActivityType, isLiabilityAccountType } from "@/lib/constants";
+import { getEffectiveType, type TransferMatchCandidate } from "@/lib/types";
 import { normalizeCurrency } from "@/lib/utils";
 
 export interface TransferLinkActivityLike {
@@ -62,11 +64,40 @@ export function isSameAccountCashFxConversion(
   );
 }
 
-/** A cash deposit or withdrawal, which "Make it a transfer…" can pair with another account. */
-export function canConvertToTransfer(activity: TransferLinkActivityLike): boolean {
+/**
+ * A cash deposit or withdrawal, which "Make it a transfer…" can pair with another
+ * account. So can a credit card's refund or credit, which becomes the card's
+ * payment: a card holds no deposits, so a payment saved wrongly is saved as one.
+ */
+export function canConvertToTransfer(
+  activity: TransferLinkActivityLike,
+  accountType?: string,
+): boolean {
   const type = getEffectiveType(activity);
   return (
-    (type === ActivityType.DEPOSIT || type === ActivityType.WITHDRAWAL) &&
+    (type === ActivityType.DEPOSIT ||
+      type === ActivityType.WITHDRAWAL ||
+      (type === ActivityType.CREDIT && isLiabilityAccountType(accountType))) &&
     !nonCashTransferAssetKey(activity)
   );
+}
+
+/** The matcher's warnings, translated; its English text when it sent no codes. */
+export function candidateWarnings(t: TFunction, candidate: TransferMatchCandidate): string[] {
+  if (!candidate.warningCodes) return candidate.warnings;
+  return candidate.warningCodes.map((warning) => {
+    switch (warning.code) {
+      case "dates_differ":
+        return t("activity:transfer_match.warning_dates_differ", { count: warning.days });
+      case "currencies_differ":
+        return t("activity:transfer_match.warning_currencies_differ", {
+          source: warning.source,
+          candidate: warning.candidate,
+        });
+      case "prices_differ":
+        return t("activity:transfer_match.warning_prices_differ");
+      case "another_match":
+        return t("activity:transfer_review.warning_another_match");
+    }
+  });
 }
