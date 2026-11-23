@@ -55,8 +55,6 @@ const BASE_URL: &str = "https://www.cse.lk/api";
 const USER_AGENT: &str = "Wealthfolio";
 /// The chart period with the longest history found, about one year.
 const HISTORY_PERIOD: &str = "5";
-/// Class suffix of an ordinary voting share, tried for a bare ticker.
-const ORDINARY_CLASS: &str = ".N0000";
 /// Sri Lanka observes UTC+05:30 all year.
 const COLOMBO_UTC_OFFSET_SECS: i32 = 5 * 3600 + 30 * 60;
 /// End of the regular trading session (14:30 Colombo time), used as the
@@ -142,17 +140,7 @@ fn full_symbol(query: &str) -> Option<String> {
     (valid_code && valid_class).then_some(symbol)
 }
 
-/// The symbol a search looks up: a full symbol exactly, or a bare ticker of
-/// 2-6 letters and digits as its ordinary share. `None` makes no request.
-fn looked_up_symbol(query: &str) -> Option<String> {
-    full_symbol(query).or_else(|| {
-        let ticker = query.trim();
-        ((2..=6).contains(&ticker.len()) && ticker.bytes().all(|b| b.is_ascii_alphanumeric()))
-            .then(|| format!("{}{}", ticker.to_ascii_uppercase(), ORDINARY_CLASS))
-    })
-}
-
-/// Fetches never guess: anything but a full symbol is not found.
+/// Fetches never guess a class: anything but a full symbol is not found.
 fn instrument_symbol(instrument: &ProviderInstrument) -> Result<String, MarketDataError> {
     match instrument {
         ProviderInstrument::EquitySymbol { symbol } => {
@@ -435,13 +423,13 @@ impl MarketDataProvider for CseLkProvider {
     }
 
     fn looks_up_identifier(&self, query: &str) -> bool {
-        looked_up_symbol(query).is_some()
+        full_symbol(query).is_some()
     }
 
-    /// Look up a full symbol, or a bare ticker's ordinary share. The result
-    /// carries the full symbol, so the user sees what was matched.
+    /// Look up a full symbol exactly. Anything else, including a bare ticker,
+    /// makes no request.
     async fn search(&self, query: &str) -> Result<Vec<SearchResult>, MarketDataError> {
-        let Some(symbol) = looked_up_symbol(query) else {
+        let Some(symbol) = full_symbol(query) else {
             return Ok(Vec::new());
         };
         match self.security(&symbol).await {
@@ -637,17 +625,17 @@ mod tests {
     }
 
     #[test]
-    fn symbols_are_full_cse_symbols_or_bare_tickers() {
+    fn symbols_are_full_cse_symbols_only() {
         for (query, looked_up) in [
             ("JKH.N0000", Some("JKH.N0000")),
             (" jkh.n0000 ", Some("JKH.N0000")),
             ("COMB.X0000", Some("COMB.X0000")),
             ("SFIN.R0000", Some("SFIN.R0000")),
             ("CALC.U0000", Some("CALC.U0000")),
-            ("JKH", Some("JKH.N0000")),
-            ("comb", Some("COMB.N0000")),
-            ("AB", Some("AB.N0000")),
-            ("ABCDEF", Some("ABCDEF.N0000")),
+            ("JKH", None),
+            ("comb", None),
+            ("AAPL", None),
+            ("RELIANCE", None),
             ("A", None),
             ("ABCDEFG", None),
             ("John Keells", None),
@@ -658,10 +646,8 @@ mod tests {
             ("JKH.N0000.X", None),
             ("", None),
         ] {
-            assert_eq!(looked_up_symbol(query).as_deref(), looked_up, "{query}");
+            assert_eq!(full_symbol(query).as_deref(), looked_up, "{query}");
         }
-        // Fetches take only a full symbol.
-        assert_eq!(full_symbol("JKH"), None);
     }
 
     #[test]
@@ -976,7 +962,7 @@ mod tests {
                     provider.get_profile("JKH.N0000").await.expect("profile");
                 }
                 _ => {
-                    assert_eq!(provider.search("JKH").await.expect("lookup").len(), 1);
+                    assert_eq!(provider.search("JKH.N0000").await.expect("lookup").len(), 1);
                 }
             }
             let sent = requests(&log).len() - before.1;
@@ -1102,16 +1088,20 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_bare_ticker_is_looked_up_as_its_ordinary_share() {
+    async fn a_full_symbol_is_looked_up_exactly() {
         let (provider, log) = jkh_provider(CHART_JKH).await;
 
-        assert!(provider.looks_up_identifier("jkh"));
-        let results = provider.search("jkh").await.expect("lookup");
+        assert!(provider.looks_up_identifier("jkh.n0000"));
+        let results = provider.search("jkh.n0000").await.expect("lookup");
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].symbol, "JKH.N0000");
         assert_eq!(results[0].name, "JOHN KEELLS HOLDINGS PLC");
-        // An unknown ticker finds nothing, without an error.
-        assert!(provider.search("NOPE").await.expect("lookup").is_empty());
+        // An unknown symbol finds nothing, without an error.
+        assert!(provider
+            .search("NOPE.N0000")
+            .await
+            .expect("lookup")
+            .is_empty());
         assert_eq!(
             requests(&log)
                 .iter()
@@ -1125,7 +1115,17 @@ mod tests {
     async fn queries_that_are_not_symbols_send_nothing() {
         let (provider, log) = jkh_provider(CHART_JKH).await;
 
-        for query in ["John Keells", "J", "TOOLONG", "JKH.N", "JKH-N0000", ""] {
+        for query in [
+            "JKH",
+            "jkh",
+            "AAPL",
+            "RELIANCE",
+            "John Keells",
+            "J",
+            "JKH.N",
+            "JKH-N0000",
+            "",
+        ] {
             assert!(!provider.looks_up_identifier(query), "{query}");
             assert!(provider.search(query).await.expect("lookup").is_empty());
         }

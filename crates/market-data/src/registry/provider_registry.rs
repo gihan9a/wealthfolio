@@ -161,7 +161,7 @@ impl ProviderRegistry {
             // stored history would delete the older quotes for good.
             if provider.id() == crate::provider::cse_lk::PROVIDER_ID {
                 last_error = MarketDataError::NotSupported {
-                    operation: crate::provider::cse_lk::RESET_REFUSAL.into(),
+                    operation: "history replacement (cse.lk only reaches back about one year; replacing would delete older quotes)".into(),
                     provider: provider.id().into(),
                 };
                 continue;

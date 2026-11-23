@@ -30,8 +30,7 @@ async fn cse_lk_lookup_profile_and_a_year_of_history() {
         let provider = CseLkProvider::new();
         let symbol = "JKH.N0000";
 
-        // A bare ticker is looked up as its ordinary share.
-        let results = provider.search("JKH").await.unwrap();
+        let results = provider.search(symbol).await.unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].symbol, symbol);
         assert_eq!(results[0].exchange_mic.as_deref(), Some("XCOL"));
