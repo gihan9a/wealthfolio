@@ -149,6 +149,9 @@ impl ProviderRegistry {
         end: DateTime<Utc>,
     ) -> Result<Vec<Quote>, MarketDataError> {
         let mut last_error = MarketDataError::NoProvidersAvailable;
+        // Kept apart from `last_error` so a later provider's failure cannot
+        // hide why CSE_LK, the provider that would have been used, refused.
+        let mut cse_lk_refusal = None;
         for provider in self.ordered_providers(context, true) {
             if context
                 .preferred_provider
@@ -160,10 +163,10 @@ impl ProviderRegistry {
             // cse.lk serves about a year of history, so replacing a longer
             // stored history would delete the older quotes for good.
             if provider.id() == crate::provider::cse_lk::PROVIDER_ID {
-                last_error = MarketDataError::NotSupported {
+                cse_lk_refusal = Some(MarketDataError::NotSupported {
                     operation: "history replacement (cse.lk only reaches back about one year; replacing would delete older quotes)".into(),
                     provider: provider.id().into(),
-                };
+                });
                 continue;
             }
             // Custom scrapers may turn a failed history request into a latest quote.
@@ -227,7 +230,7 @@ impl ProviderRegistry {
                 }
             }
         }
-        Err(last_error)
+        Err(cse_lk_refusal.unwrap_or(last_error))
     }
 
     /// Fetch quotes for an instrument.
@@ -2984,6 +2987,23 @@ mod tests {
             );
             assert_eq!(cse.base.call_count.load(Ordering::SeqCst), 0);
         }
+
+        // Providers tried after CSE_LK that also refuse or fail (as the always
+        // registered custom scraper does) must not replace its explanation.
+        let cse = reset_provider("CSE_LK", vec![dec!(100)], false);
+        let scraper = reset_provider(DATA_SOURCE_CUSTOM_SCRAPER, vec![dec!(100)], false);
+        let failing = reset_provider("FAILING", vec![dec!(100)], true);
+        let registry = ProviderRegistry::new(
+            vec![cse.clone(), failing.clone(), scraper.clone()],
+            Arc::new(MockResolver),
+        );
+        let error = registry
+            .fetch_quotes_for_reset(&equity_context(None, None), Utc::now(), Utc::now())
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("about one year"), "{error}");
+        assert_eq!(cse.base.call_count.load(Ordering::SeqCst), 0);
+        assert_eq!(scraper.base.call_count.load(Ordering::SeqCst), 0);
 
         // Another provider still resets an asset that does not prefer CSE_LK.
         let cse = reset_provider("CSE_LK", vec![dec!(100)], false);
