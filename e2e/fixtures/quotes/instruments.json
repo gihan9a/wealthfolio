@@ -41,6 +41,19 @@
       "seed": 570
     },
     {
+      "symbol": "JKH.N0000",
+      "name": "Synthetic CSE Conglomerate",
+      "provider": "CSE_LK",
+      "assetType": "EQUITY",
+      "currency": "LKR",
+      "exchange": "XCOL",
+      "exchangeMic": "XCOL",
+      "exchangeName": "Colombo Stock Exchange",
+      "basePrice": 20,
+      "baseVolume": 1000,
+      "seed": 571
+    },
+    {
       "symbol": "US037833EZ91",
       "aliases": ["037833EZ9"],
       "name": "Synthetic Corporate Bond 2031",

@@ -21,6 +21,7 @@ import {
 import { Icons } from "@wealthfolio/ui/components/ui/icons";
 import { Input } from "@wealthfolio/ui/components/ui/input";
 
+import { ProviderDisclaimer } from "./provider-disclaimer";
 import { ProviderLogo } from "./provider-logo";
 
 interface ProviderCatalogDialogProps {
@@ -132,6 +133,7 @@ export function ProviderCatalogDialog({
                 {description && (
                   <p className="text-muted-foreground line-clamp-2 text-xs">{description}</p>
                 )}
+                <ProviderDisclaimer providerId={provider.id} />
                 <div className="mt-auto flex flex-wrap items-center gap-2">
                   {coverage && <Badge variant="secondary">{coverage}</Badge>}
                   <Badge variant="secondary">

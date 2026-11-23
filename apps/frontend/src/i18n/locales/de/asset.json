@@ -236,6 +236,8 @@
   "editSheet": {
     "moex_symbol_placeholder": "z. B. SBER, AFLT",
     "moex_symbol_hint": "Verwenden Sie eine MOEX-Wertpapierkennung ohne Präfix oder Suffix. Wählen Sie Moscow Exchange (MISX) als Börse.",
+    "cse_lk_symbol_placeholder": "z. B. JKH.N0000, COMB.X0000",
+    "cse_lk_symbol_hint": "Verwenden Sie das vollständige CSE-Symbol mit Gattungssuffix, z. B. JKH.N0000 oder COMB.X0000. Wählen Sie Colombo Stock Exchange (XCOL) als Börse.",
     "identity_conflict": "Ein anderer Vermögenswert hat bereits diese Identität. Ihre Änderungen wurden nicht gespeichert. Verwenden Sie den vorhandenen Vermögenswert oder wählen Sie einen anderen Handelsplatz.",
     "general": "Allgemein",
     "classification": "Klassifizierung",

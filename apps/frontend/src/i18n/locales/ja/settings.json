@@ -951,6 +951,7 @@
     "failed_count_other": "{{count}}件失敗",
     "feature_dividends": "配当",
     "providerDescriptions": {
+      "CSE_LK": "cse.lk の公開フィードから取得する Colombo Stock Exchange 上場銘柄の日次価格です。非公式のソースです。API キーは不要です。",
       "MOEX": "Moscow Exchange ISS は、MOEX で取引される株式、預託証券、ETF の遅延価格と終値を提供します。API キーは不要です。",
       "YAHOO": "Yahoo Finance は、多くの市場を対象とする大手金融データ プロバイダーです。過去およびリアルタイムの株式データを提供します。",
       "MARKETDATA_APP": "MarketData.app は、米国株、オプション、ETF、投資信託などのリアルタイム データと履歴データを提供します。",
@@ -961,6 +962,9 @@
       "METAL_PRICE_API": "貴金属 (金、銀、プラチナ、パラジウム) のリアルタイムおよび過去のスポット価格を提供します。",
       "CUSTOM_SCRAPER": "ユーザー定義のカスタム ソースのランタイム ディスパッチ プロバイダー",
       "FINNHUB": "Finnhub は世界の株式、外国為替、暗号資産のリアルタイムデータを提供します。無料プランでは毎分 60 回の API 呼び出しが可能です。"
+    },
+    "providerDisclaimers": {
+      "CSE_LK": "非公式のデータソースです。Wealthfolio は Colombo Stock Exchange と提携しておらず、同取引所の承認も受けていません。価格は cse.lk の仕様が公開されていないフィードから取得しており、予告なく遅延したり、誤っていたり、利用できなくなったりする場合があります。ご利用が取引所の規約に従っていることを確認する責任はお客様にあります。"
     },
     "coverageLabels": {
       "Global": "グローバル",

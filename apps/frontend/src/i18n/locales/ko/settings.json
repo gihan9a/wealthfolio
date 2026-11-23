@@ -951,6 +951,7 @@
     "failed_count_other": "{{count}}건 실패",
     "feature_dividends": "배당금",
     "providerDescriptions": {
+      "CSE_LK": "cse.lk의 공개 피드에서 가져오는 Colombo Stock Exchange 상장 증권의 일별 가격입니다. 비공식 출처입니다. API 키가 필요하지 않습니다.",
       "MOEX": "Moscow Exchange ISS는 MOEX에서 거래되는 주식, 주식예탁증서 및 ETF의 지연 시세와 종가를 제공합니다. API 키가 필요하지 않습니다.",
       "YAHOO": "Yahoo Finance는 많은 시장에서 선도적인 금융 데이터 제공업체입니다. 과거 및 실시간 주식 데이터를 제공합니다.",
       "MARKETDATA_APP": "MarketData.app은 미국 주식, 옵션, ETF, 뮤추얼 펀드 등에 대한 실시간 및 과거 데이터를 제공합니다.",
@@ -961,6 +962,9 @@
       "METAL_PRICE_API": "귀금속(금, 은, 백금, 팔라듐)에 대한 실시간 및 과거 현물 가격을 제공합니다.",
       "CUSTOM_SCRAPER": "사용자 정의 사용자 정의 소스를 위한 런타임 디스패치 공급자",
       "FINNHUB": "Finnhub는 전 세계 주식, 외환 및 암호화폐 실시간 데이터를 제공합니다. 무료 요금제는 분당 API 호출 60회를 지원합니다."
+    },
+    "providerDisclaimers": {
+      "CSE_LK": "비공식 데이터 출처입니다. Wealthfolio는 Colombo Stock Exchange와 제휴하지 않았으며 그 승인을 받지도 않았습니다. 가격은 cse.lk의 문서화되지 않은 피드에서 가져오며 예고 없이 지연되거나 부정확하거나 이용할 수 없을 수 있습니다. 사용이 거래소 약관을 준수하는지 확인할 책임은 사용자에게 있습니다."
     },
     "coverageLabels": {
       "Global": "글로벌",

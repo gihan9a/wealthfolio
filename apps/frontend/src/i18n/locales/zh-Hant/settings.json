@@ -963,6 +963,7 @@
     "failed_count_one": "{{count}} 筆失敗",
     "feature_dividends": "股利",
     "providerDescriptions": {
+      "CSE_LK": "來自 cse.lk 公開資料來源的 Colombo Stock Exchange 證券每日價格。非官方來源。無需 API 金鑰。",
       "US_TREASURY_CALC": "根據美國財政部公佈的殖利率曲線計算美國國債價格。",
       "BOERSE_FRANKFURT": "法蘭克福交易所提供歐洲市場的債券和證券定價資料。",
       "OPENFIGI": "OpenFIGI 提供金融工具標識符（FIGI、ISIN、CUSIP、股票代碼）的映射服務。",
@@ -973,6 +974,9 @@
       "MARKETDATA_APP": "MarketData.app 提供美國股票、期權、ETF、共同基金等的實時和歷史資料。",
       "ALPHA_VANTAGE": "Alpha Vantage 為股票、外匯和加密貨幣的實時和歷史資料提供免費的 API。",
       "FINNHUB": "Finnhub 提供覆蓋全球的實時股票、外匯及加密貨幣資料。免費方案每分鐘支持 60 次 API 調用。"
+    },
+    "providerDisclaimers": {
+      "CSE_LK": "非官方資料來源。Wealthfolio 與 Colombo Stock Exchange 並無關聯，也未獲其認可。價格來自 cse.lk 上未公開文件的資料來源，可能延遲、有誤或在未另行通知的情況下無法使用。您有責任確保您的使用符合該交易所的條款。"
     },
     "coverageLabels": {
       "Global": "全球",

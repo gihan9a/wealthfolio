@@ -25,6 +25,7 @@ mod traits;
 pub mod alpha_vantage;
 pub mod amfi;
 pub mod boerse_frankfurt;
+pub mod cse_lk;
 pub mod finnhub;
 pub mod fixture;
 pub mod marketdata_app;

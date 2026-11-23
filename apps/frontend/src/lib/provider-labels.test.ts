@@ -150,3 +150,34 @@ it("translates MOEX descriptions and receipt capabilities", () => {
     "股票 • ETF • 存托凭证",
   );
 });
+
+const assetCatalogs = import.meta.glob<typeof enAsset>("../i18n/locales/*/asset.json", {
+  eager: true,
+  import: "default",
+});
+
+it.each(Object.entries(settingsCatalogs))(
+  "localizes the cse.lk description and disclaimer in %s, keeping cse.lk recognisable",
+  (_, catalog) => {
+    expect(catalog.market_data_page.providerDescriptions.CSE_LK).toContain("cse.lk");
+    const disclaimer = catalog.market_data_page.providerDisclaimers.CSE_LK;
+    expect(disclaimer).toContain("cse.lk");
+    expect(disclaimer).toContain("Colombo Stock Exchange");
+    expect(disclaimer).toContain("Wealthfolio");
+  },
+);
+
+it.each(Object.entries(assetCatalogs))("localizes the cse.lk symbol hint in %s", (_, catalog) => {
+  expect(catalog.editSheet.cse_lk_symbol_placeholder).toContain("JKH.N0000");
+  expect(catalog.editSheet.cse_lk_symbol_hint).toContain("XCOL");
+});
+
+it("translates the cse.lk description seeded in English", () => {
+  expect(
+    getProviderDescription(
+      i18n.getFixedT("zh"),
+      "CSE_LK",
+      en.market_data_page.providerDescriptions.CSE_LK,
+    ),
+  ).toBe(zh.market_data_page.providerDescriptions.CSE_LK);
+});

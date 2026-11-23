@@ -930,6 +930,7 @@
     "failed_count_other": "{{count}} fehlgeschlagen",
     "feature_dividends": "Dividenden",
     "providerDescriptions": {
+      "CSE_LK": "Tägliche Kurse für Wertpapiere der Colombo Stock Exchange aus dem öffentlichen Feed auf cse.lk. Inoffizielle Quelle. Kein API-Schlüssel erforderlich.",
       "US_TREASURY_CALC": "Berechnet die Kurse von US-Staatsanleihen anhand der vom US-Finanzministerium veröffentlichten Zinskurvendaten.",
       "BOERSE_FRANKFURT": "Börse Frankfurt stellt Preisdaten für Anleihen und Wertpapiere für europäische Märkte bereit.",
       "OPENFIGI": "OpenFIGI bietet einen Mapping-Service für Finanzinstrument-Identifikatoren (FIGI, ISIN, CUSIP, Ticker).",
@@ -940,6 +941,9 @@
       "MARKETDATA_APP": "MarketData.app bietet Echtzeit- und historische Daten für US-Aktien, Optionen, ETFs, Investmentfonds und mehr.",
       "ALPHA_VANTAGE": "Alpha Vantage bietet kostenlose APIs für Echtzeit- und historische Daten zu Aktien, Devisen und Kryptowährungen.",
       "FINNHUB": "Finnhub bietet weltweite Echtzeitdaten zu Aktien, Devisen und Kryptowährungen. Der kostenlose Tarif umfasst 60 API-Aufrufe pro Minute."
+    },
+    "providerDisclaimers": {
+      "CSE_LK": "Inoffizielle Datenquelle. Wealthfolio ist weder mit der Colombo Stock Exchange verbunden noch von ihr unterstützt. Die Kurse stammen aus einem nicht dokumentierten Feed auf cse.lk und können ohne Vorankündigung verzögert, fehlerhaft oder nicht verfügbar sein. Sie sind selbst dafür verantwortlich, dass Ihre Nutzung den Bedingungen der Börse entspricht."
     },
     "coverageLabels": {
       "Global": "Global",

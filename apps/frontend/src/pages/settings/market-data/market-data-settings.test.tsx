@@ -6,6 +6,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MarketDataProviderSetting } from "@/adapters";
+import enSettings from "@/i18n/locales/en/settings.json";
 import type { Asset } from "@/lib/types";
 import type { CustomProviderWithSources } from "@/lib/types/custom-provider";
 import MarketDataSettingsPage from "./market-data-settings";
@@ -637,6 +638,83 @@ describe("MarketDataSettingsPage", () => {
         "US Treasury (Calculated)",
       ),
     ).toBeInTheDocument();
+  });
+
+  const cse = marketDataProvider({
+    id: "CSE_LK",
+    name: "Colombo Stock Exchange",
+    description: enSettings.market_data_page.providerDescriptions.CSE_LK,
+    priority: 16,
+    requiresApiKey: false,
+    capabilities: { instruments: "Stocks • Funds", coverage: "XCOL", features: ["Historical"] },
+  });
+  const cseDisclaimer = enSettings.market_data_page.providerDisclaimers.CSE_LK;
+
+  it("shows the cse.lk disclaimer on its catalog card above Add, and on no other card", async () => {
+    setProviders(yahoo, amfi, cse);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Add provider" }));
+    const catalog = await screen.findByRole("list", { name: "Add a provider" });
+    const add = within(catalog).getByRole("button", { name: "Add Colombo Stock Exchange" });
+    const card = add.closest("li") as HTMLElement;
+    const notice = within(card).getByText(cseDisclaimer);
+    // Shown in full, not clamped like the description, and read before Add.
+    expect(notice.closest("[class*='line-clamp']")).toBeNull();
+    expect(notice.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(catalog).getAllByText(cseDisclaimer)).toHaveLength(1);
+    const amfiCard = within(catalog).getByText("AMFI").closest("li") as HTMLElement;
+    expect(within(amfiCard).queryByText(cseDisclaimer)).not.toBeInTheDocument();
+  });
+
+  it("keeps the cse.lk disclaimer beside its switch however the row is collapsed or switched", async () => {
+    setProviders(yahoo, { ...cse, enabled: true });
+    const client = new QueryClient();
+    const page = () => (
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <MarketDataSettingsPage />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    const user = userEvent.setup();
+    const { rerender } = render(page());
+    const row = () =>
+      screen.getByRole("switch", { name: "Colombo Stock Exchange" }).closest("li") as HTMLElement;
+    const visible = () => expect(within(row()).getByText(cseDisclaimer)).toBeVisible();
+
+    visible();
+    const settings = screen.getByRole("button", { name: "Colombo Stock Exchange settings" });
+    await user.click(settings); // expand
+    visible();
+    await user.click(settings); // collapse
+    visible();
+
+    // Switch off while collapsed; the row stays listed with its notice.
+    await user.click(screen.getByRole("switch", { name: "Colombo Stock Exchange" }));
+    expect(mutate).toHaveBeenLastCalledWith({
+      providerId: "CSE_LK",
+      priority: 16,
+      enabled: false,
+    });
+    setProviders(yahoo, { ...cse, enabled: false });
+    rerender(page());
+    visible();
+
+    // The notice is still beside the switch when it is turned back on.
+    await user.click(screen.getByRole("switch", { name: "Colombo Stock Exchange" }));
+    expect(mutate).toHaveBeenLastCalledWith({
+      providerId: "CSE_LK",
+      priority: 16,
+      enabled: true,
+    });
+    setProviders(yahoo, { ...cse, enabled: true });
+    rerender(page());
+    visible();
+
+    // No other provider shows it.
+    expect(screen.getAllByText(cseDisclaimer)).toHaveLength(1);
   });
 
   it("adds custom providers from their own card, not the built-in catalog", async () => {

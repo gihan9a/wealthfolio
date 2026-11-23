@@ -463,7 +463,7 @@ mod tests {
     }
 
     #[test]
-    fn colombo_stock_exchange_is_configured_in_lkr_without_a_quote_provider() {
+    fn colombo_stock_exchange_is_configured_in_lkr_without_a_yahoo_suffix() {
         let cse = get_exchange_list()
             .into_iter()
             .find(|entry| entry.mic == "XCOL")

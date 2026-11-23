@@ -960,6 +960,7 @@
     "feature_no_api_key": "无需 API 密钥",
     "us_treasury_name": "美国财政部（计算）",
     "providerDescriptions": {
+      "CSE_LK": "来自 cse.lk 公开数据源的 Colombo Stock Exchange 证券每日价格。非官方来源。无需 API 密钥。",
       "MOEX": "Moscow Exchange ISS 提供 MOEX 上交易的股票、存托凭证和 ETF 的延迟行情及收盘价。无需 API 密钥。",
       "YAHOO": "Yahoo Finance 提供多个市场的历史及实时股票数据。",
       "MARKETDATA_APP": "MarketData.app 提供美国股票、期权、ETF、共同基金等的实时和历史数据。",
@@ -970,6 +971,9 @@
       "METAL_PRICE_API": "提供贵金属（黄金、白银、铂金、钯金）的实时和历史现货价格。",
       "CUSTOM_SCRAPER": "为用户自定义数据源提供运行时调度。",
       "FINNHUB": "Finnhub 提供覆盖全球的实时股票、外汇及加密货币数据。免费方案每分钟支持 60 次 API 调用。"
+    },
+    "providerDisclaimers": {
+      "CSE_LK": "非官方数据源。Wealthfolio 与 Colombo Stock Exchange 无任何关联，也未获得其认可。价格来自 cse.lk 上未公开文档的数据源，可能延迟、有误或在不另行通知的情况下无法使用。您有责任确保您的使用符合该交易所的条款。"
     },
     "templateDescriptions": {
       "workplace_fund_prices_fund_code": "雇主退休计划基金价格（基金代码）",

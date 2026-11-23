@@ -123,6 +123,18 @@ impl RulesResolver {
             ));
         }
 
+        // cse.lk addresses a security by its full CSE symbol (`JKH.N0000`);
+        // coverage already limits this provider to XCOL, so the ticker is not
+        // a guess.
+        if provider.as_ref() == "CSE_LK" {
+            return Some((
+                ProviderInstrument::EquitySymbol {
+                    symbol: ticker.clone(),
+                },
+                ResolutionSource::Rules,
+            ));
+        }
+
         let provider_ticker = if provider.as_ref() == "YAHOO" && !has_unverified_dotted_suffix {
             yahoo_equity_base_to_provider(ticker)
         } else {
@@ -968,6 +980,48 @@ mod tests {
         match resolved.instrument {
             ProviderInstrument::EquitySymbol { symbol } => assert_eq!(symbol.as_ref(), "AFLT"),
             _ => panic!("Expected EquitySymbol"),
+        }
+    }
+
+    #[test]
+    fn test_resolve_equity_cse_lk_uses_full_cse_symbol() {
+        let resolver = RulesResolver::new();
+        for symbol in ["JKH.N0000", "COMB.X0000", "CALC.U0000"] {
+            let context = make_equity_context(symbol, Some("XCOL"));
+
+            let resolved = resolver
+                .resolve(&"CSE_LK".into(), &context)
+                .unwrap()
+                .unwrap();
+
+            assert_eq!(resolved.source, ResolutionSource::Rules, "{symbol}");
+            match resolved.instrument {
+                ProviderInstrument::EquitySymbol { symbol: resolved } => {
+                    assert_eq!(resolved.as_ref(), symbol)
+                }
+                _ => panic!("Expected EquitySymbol"),
+            }
+        }
+    }
+
+    /// No other provider maps XCOL, so its bare ticker would be a guess at
+    /// another listing: it stays an unverified fallback, which the registry
+    /// skips for quotes.
+    #[test]
+    fn test_resolve_xcol_without_cse_lk_is_a_fallback() {
+        let resolver = RulesResolver::new();
+        let context = make_equity_context("JKH.N0000", Some("XCOL"));
+
+        for provider in ["YAHOO", "ALPHA_VANTAGE", "FINNHUB", "MARKETDATA_APP"] {
+            let resolved = resolver
+                .resolve(&provider.into(), &context)
+                .unwrap()
+                .unwrap();
+            assert_eq!(
+                resolved.source,
+                ResolutionSource::RulesFallback,
+                "{provider}"
+            );
         }
     }
 

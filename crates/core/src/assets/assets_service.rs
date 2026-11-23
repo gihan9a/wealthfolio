@@ -494,6 +494,14 @@ impl AssetService {
             return Some(serde_json::json!({ "preferred_provider": "MOEX" }));
         }
 
+        // No other provider maps XCOL, and a bare ticker elsewhere is another
+        // venue's listing; the CSE symbol (`JKH.N0000`) is what cse.lk takes.
+        if matches!(instrument_type, Some(InstrumentType::Equity))
+            && exchange_mic.is_some_and(|mic| mic.trim().eq_ignore_ascii_case("XCOL"))
+        {
+            return Some(serde_json::json!({ "preferred_provider": "CSE_LK" }));
+        }
+
         None
     }
 
@@ -6753,6 +6761,46 @@ mod tests {
     }
 
     #[test]
+    fn test_cse_equity_prefers_cse_lk() {
+        let provider_config = AssetService::inferred_provider_config(
+            QuoteMode::Market,
+            Some(&InstrumentType::Equity),
+            Some("JKH.N0000"),
+            Some("XCOL"),
+        );
+
+        assert_eq!(
+            provider_config,
+            Some(serde_json::json!({ "preferred_provider": "CSE_LK" })),
+            "XCOL equities should prefer CSE_LK"
+        );
+
+        let manual = AssetService::inferred_provider_config(
+            QuoteMode::Manual,
+            Some(&InstrumentType::Equity),
+            Some("JKH.N0000"),
+            Some("XCOL"),
+        );
+        assert!(manual.is_none(), "manual assets keep no provider config");
+    }
+
+    /// The CSE class suffix is part of the symbol, not an exchange suffix.
+    #[test]
+    fn test_cse_symbol_keeps_its_class_suffix() {
+        for symbol in ["JKH.N0000", "COMB.X0000", "CALC.U0000"] {
+            let canonical = super::canonicalize_market_identity(
+                Some(InstrumentType::Equity),
+                Some(symbol),
+                Some("XCOL"),
+                None,
+            );
+            assert_eq!(canonical.instrument_symbol.as_deref(), Some(symbol));
+            assert_eq!(canonical.instrument_exchange_mic.as_deref(), Some("XCOL"));
+            assert_eq!(canonical.quote_ccy.as_deref(), Some("LKR"));
+        }
+    }
+
+    #[test]
     fn test_profile_provider_change_resets_sync_state() {
         let before = Asset {
             provider_config: Some(serde_json::json!({ "preferred_provider": "YAHOO" })),
@@ -7074,6 +7122,41 @@ mod tests {
         let asset = repo.get_by_id("asset-1").unwrap();
         assert_eq!(asset.name.as_deref(), Some("WhiteOak Capital Fund Dir Gr"));
         assert!(asset.metadata.is_some(), "the profile was applied");
+    }
+
+    /// A provider the user chose for an XCOL asset survives enrichment from a
+    /// CSE_LK profile, and so does the CSE symbol.
+    #[tokio::test]
+    async fn enrichment_keeps_the_provider_chosen_for_an_xcol_asset() {
+        let repo = Arc::new(TestAssetRepository::with_assets(vec![Asset {
+            instrument_symbol: Some("JKH.N0000".to_string()),
+            instrument_exchange_mic: Some("XCOL".to_string()),
+            quote_ccy: "LKR".to_string(),
+            provider_config: Some(serde_json::json!({ "preferred_provider": "MANUAL_PICK" })),
+            ..test_market_asset()
+        }]));
+        let quotes = TestQuoteService::default();
+        quotes.profiles.lock().unwrap().insert(
+            "JKH.N0000".to_string(),
+            ProviderProfile {
+                symbol: "JKH.N0000".to_string(),
+                name: Some("JOHN KEELLS HOLDINGS PLC".to_string()),
+                isin: Some("LK0092N00003".to_string()),
+                asset_type: Some("EQUITY".to_string()),
+                currency: "LKR".to_string(),
+                data_source: "CSE_LK".to_string(),
+                ..Default::default()
+            },
+        );
+        let service = AssetService::new(repo.clone(), Arc::new(quotes)).unwrap();
+
+        service.enrich_asset_profile("asset-1").await.unwrap();
+
+        let asset = repo.get_by_id("asset-1").unwrap();
+        assert_eq!(asset.preferred_provider().as_deref(), Some("MANUAL_PICK"));
+        assert_eq!(asset.instrument_symbol.as_deref(), Some("JKH.N0000"));
+        assert_eq!(asset.quote_ccy, "LKR");
+        assert_eq!(asset.name.as_deref(), Some("JOHN KEELLS HOLDINGS PLC"));
     }
 
     fn test_market_asset() -> Asset {

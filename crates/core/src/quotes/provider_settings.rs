@@ -113,6 +113,16 @@ impl ProviderCapabilities {
                     "Profiles".to_string(),
                 ],
             }),
+            "CSE_LK" => Some(Self {
+                instruments: "Stocks • Funds".to_string(),
+                coverage: "XCOL".to_string(),
+                features: vec![
+                    "Historical".to_string(),
+                    "Search".to_string(),
+                    "Profiles".to_string(),
+                    "No API key".to_string(),
+                ],
+            }),
             "OPENFIGI" => Some(Self {
                 instruments: "Bonds".to_string(),
                 coverage: "Global".to_string(),

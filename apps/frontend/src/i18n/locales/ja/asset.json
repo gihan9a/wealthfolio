@@ -236,6 +236,8 @@
   "editSheet": {
     "moex_symbol_placeholder": "例: SBER, AFLT",
     "moex_symbol_hint": "接頭辞や接尾辞のない MOEX 銘柄コードを使用してください。取引所は Moscow Exchange (MISX) に設定してください。",
+    "cse_lk_symbol_placeholder": "例: JKH.N0000, COMB.X0000",
+    "cse_lk_symbol_hint": "JKH.N0000 や COMB.X0000 のように、クラス接尾辞付きの完全な CSE シンボルを使用してください。取引所は Colombo Stock Exchange (XCOL) に設定してください。",
     "identity_conflict": "同じ識別情報の資産がすでに存在します。変更は保存されませんでした。既存の資産を使用するか、別の取引所を選択してください。",
     "general": "基本情報",
     "classification": "分類",
